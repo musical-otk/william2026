@@ -91,6 +91,9 @@ frame.addEventListener('load', () => {
       document.documentElement.setAttribute('data-theme', THEME);
     }
 
+    // 기록 입력 폼 (배역 배치 확인용)
+    if (TAB === 'form') { W.openAddRecord('2026-12-12'); document.title = 'SHOT form'; return; }
+
     // 상세 패널 (미니 좌석도 확인용)
     if (TAB === 'detail') {
       const home = W.document.querySelector(`.tab-btn[onclick*="'home'"]`);

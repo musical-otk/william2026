@@ -169,7 +169,7 @@
   .heatmap-tab{flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg3);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;text-align:center;}
   .heatmap-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
   .heatmap-scroll{overflow-x:auto;}
-  .heatmap-wrap{padding:4px 0;display:flex;flex-direction:column;gap:1px;width:max-content;margin:0 auto;}
+  .heatmap-wrap{padding:4px 0;display:flex;flex-direction:column;gap:2px;width:max-content;margin:0 auto;}
   .hm-row{display:flex;align-items:center;gap:0;}
   .hm-label{width:18px;height:11px;line-height:11px;font-size:9px;color:var(--text3);text-align:center;font-weight:700;flex-shrink:0;}
   .hm-cell{width:11px;height:11px;border-radius:2px;background:var(--bg3);border:1px solid var(--border);flex-shrink:0;}
@@ -563,7 +563,7 @@
         </select>
       </div>
     </div>
-    <!-- 캐스팅 (3역할) -->
+    <!-- 캐스팅 (3역할 한 줄) -->
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">사무엘</label>
@@ -579,8 +579,6 @@
           <option>박민성</option><option>김지철</option><option>조환지</option>
         </select>
       </div>
-    </div>
-    <div class="form-row">
       <div class="form-group">
         <label class="form-label">헨리</label>
         <select class="form-control" id="rec-henry">
@@ -646,6 +644,7 @@
         <option value="재관람 할인">재관람 할인 (30%)</option>
         <option value="재관람카드 40% 할인권">재관람카드 40% 할인권</option>
         <option value="복지할인">복지할인 (50%)</option>
+        <option value="타임세일">타임세일</option>
       </select>
       <div id="rec-discount-warn" style="display:none;margin-top:6px;font-size:12px;color:var(--danger);">⚠ 현재 보유한 쿠폰이 없습니다</div>
     </div>
@@ -1315,7 +1314,8 @@ const DISCOUNT_LABEL = {
   '윌리엄 할인':           '윌리엄 할인 (35%)',
   '재관람 할인':           '재관람 할인 (30%)',
   '재관람카드 40% 할인권': '재관람카드 40% 할인권',
-  '복지할인':              '복지할인 (50%)'
+  '복지할인':              '복지할인 (50%)',
+  '타임세일':              '타임세일'      // 회차마다 할인율이 달라 율을 적지 않는다
 };
 // 할인율 — 절감액 계산용 (정가: A~L열 R석 70,000원 / M~R열 S석 50,000원)
 const DISCOUNT_RATE = {
@@ -2025,7 +2025,7 @@ function buildMiniSeat(floor, rowKey, num) {
   const plan = SEAT_PLAN[floor];
   if (!plan) return '';
   // 히트맵과 같은 FLOOR_ZONES 를 쓴다 (따로 두면 두 좌석도가 어긋난다)
-  const C = 9, G = 1, ZG = 11;
+  const C = 9, G = 2, ZG = 11;
   const MAX  = FLOOR_ZONES[floor];
   const lead = floorLeadPx(floor, C, G, ZG);
   const seatNum = parseInt(num);
@@ -2890,7 +2890,7 @@ function renderHeatmap() {
   });
 
   // C=셀 너비, G=셀 간격(margin-right), ZG=구역 간격 div 너비
-  const C = 11, G = 1, ZG = 11;
+  const C = 11, G = 2, ZG = 11;
   const cls = c => !c ? '' : c >= 5 ? ' v5' : ' v' + c;
 
   function renderFloor(floor) {
