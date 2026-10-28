@@ -1,0 +1,28 @@
+{
+  "name": "윌리엄과 윌리엄의 윌리엄들 관극 다이어리",
+  "short_name": "윌리엄들",
+  "description": "뮤지컬 윌리엄과 윌리엄의 윌리엄들 2026-2027 관람 기록 앱",
+  "start_url": "/william2026/",
+  "scope": "/william2026/",
+  "display": "standalone",
+  "background_color": "#F7EFE1",
+  "theme_color": "#3A2414",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

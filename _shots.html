@@ -1,0 +1,122 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>SHOTS</title>
+<style>
+  html,body{margin:0;padding:0;background:#fff;}
+  iframe{width:430px;height:932px;border:0;display:block;}
+</style>
+</head>
+<body>
+<iframe id="app" src="./index.html"></iframe>
+<script>
+/*
+  guide.html 용 스크린샷 촬영 하네스 (개발 도구, 배포 대상 아님).
+    _shots.html?tab=home | calendar | coupon | stats
+  index.html 을 iframe 으로 띄우고 샘플 기록을 심은 뒤 해당 탭으로 전환한다.
+  headless Chrome --screenshot 으로 캡처한다.
+*/
+const Q = new URLSearchParams(location.search);
+const TAB = Q.get('tab') || 'home';
+const THEME = Q.get('theme');   // 다크모드 대비는 자동 검사가 못 잡는다 (pitfalls §14)
+
+// 실제 schedule.json 의 캐스팅과 일치시킨 샘플 관람 기록
+const SAMPLE = [
+  { date:'2026-12-08', time:'20:00', samuel:'원종환', h:'김지철', henry:'이진우',
+    seatFloor:'1층', seatZone:'C', seatNumber:10, price:42000, discountType:'프리뷰 할인', rating:5,
+    comment:'첫공' },
+  { date:'2026-12-12', time:'15:00', samuel:'원종환', h:'박민성', henry:'이세헌',
+    seatFloor:'1층', seatZone:'F', seatNumber:5, price:42000, discountType:'프리뷰 할인', rating:5,
+    comment:'프리뷰 낮공' },
+  { date:'2026-12-16', time:'16:00', samuel:'원종환', h:'김지철', henry:'이세헌',
+    seatFloor:'1층', seatZone:'K', seatNumber:15, price:70000, discountType:'정가', rating:4,
+    comment:'수요일 마티네' },
+  { date:'2026-12-19', time:'19:00', samuel:'김지훈', h:'김지철', henry:'박상혁',
+    seatFloor:'1층', seatZone:'N', seatNumber:8, price:35000, discountType:'재관람 할인', rating:5,
+    comment:'S석 시야 확인' },
+  { date:'2026-12-25', time:'15:00', samuel:'박유덕', h:'조환지', henry:'이세헌',
+    seatFloor:'1층', seatZone:'Q', seatNumber:12, price:42500, discountType:'셰익스피어의 할인', rating:5,
+    comment:'성탄절 공연' }
+];
+
+function seed(W) {
+  // 기존 데이터 정리
+  Object.keys(W.localStorage)
+    .filter(k => k.startsWith('william_') && !['william_schedule','william_events'].includes(k))
+    .forEach(k => W.localStorage.removeItem(k));
+
+  // 도장판 하나 만들고 앱 로직으로 도장을 찍어 카운트·마일스톤 정합성을 맞춘다
+  const board = { id: W.uuid(), name: '1', totalSlots: W.eval('DEFAULT_SLOTS'),
+                  milestones: W.defaultMilestones(), currentCount: 0, history: [] };
+  W.saveStampBoards([board]);
+
+  const now = new Date().toISOString();
+  const records = SAMPLE.map(s => Object.assign({
+    id: W.uuid(), isBooked: true, paidDiff: false, eungBingPassUsed: false,
+    doubleStampUsed: false, stampBoardId: board.id, stampQty: 1,
+    memo: '', createdAt: now, updatedAt: now
+  }, s));
+  W.saveRecords(records);
+
+  records.forEach(r => {
+    W.applyStampToBoard(board.id, 1, r.date, '관람 연동');
+    W.applyStampToBoard._lastOverflow = 0;
+    const bs = W.getStampBoards();
+    const b  = bs.find(x => x.id === board.id);
+    if (b?.history?.length) {
+      b.history[b.history.length - 1].recordId = r.id;
+      W.saveStampBoards(bs);
+    }
+  });
+}
+
+const frame = document.getElementById('app');
+frame.addEventListener('load', () => {
+  const W = frame.contentWindow;
+  const start = Date.now();
+  (function wait() {
+    const ready = W.getSchedule && W.getSchedule().length > 0;
+    if (!ready && Date.now() - start < 6000) return setTimeout(wait, 150);
+
+    // ?empty=1 — 기록이 하나도 없는 첫 화면 (빈 상태 아이콘·문구 확인용)
+    if (Q.get('empty')) {
+      Object.keys(W.localStorage)
+        .filter(k => k.startsWith('william_') && !['william_schedule','william_events'].includes(k))
+        .forEach(k => W.localStorage.removeItem(k));
+      W.refreshCurrentPage && W.refreshCurrentPage();
+    } else seed(W);
+    if (THEME) {
+      W.document.documentElement.setAttribute('data-theme', THEME);
+      document.documentElement.setAttribute('data-theme', THEME);
+    }
+
+    // 상세 패널 (미니 좌석도 확인용)
+    if (TAB === 'detail') {
+      const home = W.document.querySelector(`.tab-btn[onclick*="'home'"]`);
+      if (home) W.switchTab('home', home);
+      const target = W.getRecords()[0];   // 단층 극장
+      W.openDetail(target.id);
+      document.title = 'SHOT detail';
+      return;
+    }
+
+    const btn = W.document.querySelector(`.tab-btn[onclick*="'${TAB}'"]`);
+    if (btn) W.switchTab(TAB, btn);
+
+    // 캘린더는 11월을 보여주고, 2회 공연인 날짜를 펼쳐 둔다
+    if (TAB === 'calendar') {
+      W.initCal(); W.renderCalendar(); W.calDayClick('2026-12-12');
+      // ?roles=open — 배역 필터를 펼친 상태로 찍는다 (칩 정렬 확인용)
+      if (Q.get('roles') === 'open') {
+        W.document.querySelectorAll('#cal-role-tabs .cal-role-tab').forEach(b => W.selectCalRole(b.dataset.role, b));
+      }
+    }
+    if (TAB === 'stats')    W.switchStatTab('heatmap', W.document.querySelector('.stats-subtab'));
+
+    document.title = 'SHOT ' + TAB;
+  })();
+});
+</script>
+</body>
+</html>
