@@ -21,7 +21,7 @@
     /* 윌리엄들 — 공식 이미지 샘플링 (다크 포인트는 양피지 — 골드는 갈색 바탕에 안 어울려 교체): 다크브라운 #3A2414 · 좌석 브라운 #6B3A1E · 머스터드 #C8901A · 양피지 #F6E9D2 */
     --bg:#F7EFE1;--bg1:#FFFDF8;--bg2:#FFFDF8;--bg3:#EDE0C8;
     --border:#DCCBAA;--text:#2B1A0E;--text1:#2B1A0E;--text2:#5A4330;--text3:#8E7A62;
-    --accent:#7A3F1C;--accent2:#B07A12;--accent-light:rgba(122,63,28,0.10);--on-accent:#fff;
+    --accent:#7A3F1C;--accent2:#B07A12;--accent-light:rgba(122,63,28,0.10);--on-accent:#fff;--accent-fill:#7A3F1C;
     --danger:#c0392b;--success:#3a8a52;--star:#C8901A;
     --seat1:#E0B978;--seat2:#C9944A;--seat3:#A86A2C;--seat4:#7E4219;--seat5:#4E220A;
     --shadow:0 2px 14px rgba(43,26,14,0.10);--radius:12px;--tab-h:64px;
@@ -29,7 +29,7 @@
   [data-theme="dark"]{
     --bg:#140D07;--bg1:#1F150D;--bg2:#1F150D;--bg3:#2C1F14;
     --border:#3D2C1D;--text:#F3E6CF;--text1:#F3E6CF;--text2:#CDB797;--text3:#8D7860;
-    --accent:#E6D2AC;--accent2:#F3E6CF;--accent-light:#3A2C1E;--on-accent:#1F150D;
+    --accent:#E6D2AC;--accent2:#F3E6CF;--accent-light:#3A2C1E;--on-accent:#1F150D;--accent-fill:#B39E7C;
     --danger:#ee6666;--success:#44aa66;--star:#E6D2AC;
     --shadow:0 2px 12px rgba(0,0,0,0.55);
     --seat1:#5E4A36;--seat2:#86705A;--seat3:#AE987E;--seat4:#D4C0A2;--seat5:#F6E9D2;
@@ -58,7 +58,7 @@
   /* BUTTON */
   .btn{padding:10px 20px;border-radius:8px;border:none;cursor:pointer;font-size:14px;font-weight:600;transition:opacity 0.2s;}
   .btn:active{opacity:0.7;}
-  .btn-primary{background:var(--accent);color:var(--on-accent);}
+  .btn-primary{background:var(--accent-fill);color:var(--on-accent);}
   .btn-outline{background:none;border:1.5px solid var(--border);color:var(--text);}
   .btn-danger{background:var(--danger);color:#fff;}
   .btn-sm{padding:6px 14px;font-size:12px;}
@@ -130,7 +130,7 @@
   .cal-role-sep{color:var(--text3);font-size:11px;user-select:none;padding:0 1px;}
   .cal-actor-chips{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0 4px;border-top:1px solid var(--border);}
   .cal-chip{padding:4px 10px;border-radius:12px;font-size:12px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);cursor:pointer;white-space:nowrap;}
-  .cal-chip.active{background:var(--accent);color:var(--on-accent);border-color:var(--accent);}
+  .cal-chip.active{background:var(--accent-fill);color:var(--on-accent);border-color:var(--accent-fill);}
 
   /* 날짜 클릭 패널 */
   .cal-day-panel{background:var(--bg1);border-radius:var(--radius);border:1px solid var(--border);margin-top:8px;overflow:hidden;}
@@ -167,7 +167,7 @@
 
   /* HEATMAP */
   .heatmap-tab{flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg3);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;text-align:center;}
-  .heatmap-tab.active{background:var(--accent);color:var(--on-accent);border-color:var(--accent);}
+  .heatmap-tab.active{background:var(--accent-fill);color:var(--on-accent);border-color:var(--accent-fill);}
   .heatmap-scroll{overflow-x:auto;}
   .heatmap-wrap{padding:4px 0;display:flex;flex-direction:column;gap:2px;width:max-content;margin:0 auto;}
   .hm-row{display:flex;align-items:center;gap:0;}
@@ -334,7 +334,7 @@
     <a href="https://x.com/thebestplays" target="_blank" style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;text-decoration:none;border-bottom:1px solid var(--border);"><span style="font-size:12px;font-weight:600;color:var(--text1);">𝕏 연극열전 공식 계정</span><span style="font-size:12px;color:var(--text3);">바로가기 ›</span></a>
     <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;">
       <input id="x-search-input" type="text" placeholder="공식 계정 검색..." style="flex:1;border:none;background:var(--bg3);border-radius:8px;padding:7px 10px;font-size:13px;color:var(--text);font-family:inherit;outline:none;" onkeydown="if(event.key==='Enter')doXSearch()">
-      <button onclick="doXSearch()" style="background:var(--accent);color:var(--on-accent);border:none;border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;">🔍</button>
+      <button onclick="doXSearch()" style="background:var(--accent-fill);color:var(--on-accent);border:none;border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;">🔍</button>
     </div>
   </div>
   <div class="card">
@@ -3439,8 +3439,8 @@ function renderStampHistoryPanel() {
     if (!m4 || !m4.notified || !m4.choiceRequired) return '';
     const isCoupon = m4.rewardChoice === 'coupon';
     const isPolar  = m4.rewardChoice === 'polaroid';
-    return `<button style="padding:3px 7px;border-radius:6px;border:1.5px solid ${isCoupon?'var(--accent)':'var(--border)'};background:${isCoupon?'var(--accent)':'none'};color:${isCoupon?'var(--on-accent)':'var(--text2)'};font-size:10px;cursor:pointer;font-family:inherit;" onclick="changeMilestone4('${boardId}','coupon')">🏷</button>
-    <button style="padding:3px 7px;border-radius:6px;border:1.5px solid ${isPolar?'var(--accent)':'var(--border)'};background:${isPolar?'var(--accent)':'none'};color:${isPolar?'var(--on-accent)':'var(--text2)'};font-size:10px;cursor:pointer;font-family:inherit;" onclick="changeMilestone4('${boardId}','polaroid')">📸</button>`;
+    return `<button style="padding:3px 7px;border-radius:6px;border:1.5px solid ${isCoupon?'var(--accent)':'var(--border)'};background:${isCoupon?'var(--accent-fill)':'none'};color:${isCoupon?'var(--on-accent)':'var(--text2)'};font-size:10px;cursor:pointer;font-family:inherit;" onclick="changeMilestone4('${boardId}','coupon')">🏷</button>
+    <button style="padding:3px 7px;border-radius:6px;border:1.5px solid ${isPolar?'var(--accent)':'var(--border)'};background:${isPolar?'var(--accent-fill)':'none'};color:${isPolar?'var(--on-accent)':'var(--text2)'};font-size:10px;cursor:pointer;font-family:inherit;" onclick="changeMilestone4('${boardId}','polaroid')">📸</button>`;
   }
   el.innerHTML = '<div class="history-list">' + sortedH.map((h, i) => {
     const origIdx = board.history.indexOf(h);
