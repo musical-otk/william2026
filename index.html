@@ -747,19 +747,25 @@
       <div style="display:flex;gap:6px;margin-bottom:8px;">
         <div style="flex:1;text-align:center;background:var(--bg1);border-radius:8px;padding:8px 4px;">
           <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">3회</div>
-          <div style="font-weight:700;font-size:13px;">🎴 포토카드</div>
-          <div style="font-size:10px;color:var(--text3);">9종</div>
+          <div style="font-weight:700;font-size:13px;">🎟 40% 할인권</div>
+          <div style="font-size:10px;color:var(--text3);">2매</div>
+        </div>
+        <div style="flex:1;text-align:center;background:var(--bg1);border-radius:8px;padding:8px 4px;">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">5회</div>
+          <div style="font-weight:700;font-size:13px;">📸 폴라로이드</div>
+          <div style="font-size:10px;color:var(--text3);">캐스트 지정 1매</div>
         </div>
         <div style="flex:1;text-align:center;background:var(--bg1);border-radius:8px;padding:8px 4px;border:1.5px solid var(--accent);">
           <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">7회</div>
-          <div style="font-weight:700;font-size:13px;color:var(--accent);">📸 폴라로이드 + 💿 OST</div>
-          <div style="font-size:10px;color:var(--text3);">지정 사진 1장 · 실황 OST</div>
+          <div style="font-weight:700;font-size:13px;color:var(--accent);">💿 미니 실황 OST</div>
+          <div style="font-size:10px;color:var(--text3);">교환권 · 카드 지참</div>
         </div>
       </div>
       <div style="font-size:11px;color:var(--text2);line-height:1.7;">
-        유료 관람 회차마다 도장 1개. 당일 회차만 적립되며 지난 회차는 소급되지 않습니다.<br>
-        여러 장의 카드는 합산할 수 없어 7칸을 넘기면 새 카드로 이어집니다.<br>
-        <span style="color:var(--text3);">⏰ MD부스 · 공연 시작 1시간 전 ~ 시작 10분 전 / 종료 후 10분까지</span>
+        첫 관람부터 1회 공연당 도장 1개. 동일 회차·지난 공연은 적립되지 않습니다.<br>
+        서로 다른 카드는 합산할 수 없어 7칸을 넘기면 새 카드로 이어집니다.<br>
+        40% 할인권 사용기간 12/11~2/21 · 카드 발급은 2/28까지<br>
+        <span style="color:var(--text3);">⏰ MD부스 · 공연 시작 1시간 전 ~ 10분 전 / 종료 후 약 10분까지</span>
       </div>
     </div>
     <div class="form-group">
@@ -2025,8 +2031,13 @@ function buildMiniSeat(floor, rowKey, num) {
   const plan = SEAT_PLAN[floor];
   if (!plan) return '';
   // 히트맵과 같은 FLOOR_ZONES 를 쓴다 (따로 두면 두 좌석도가 어긋난다)
-  const C = 9, G = 2, ZG = 11;
+  // 화면 폭에 맞춰 칸 크기를 정한다 — 좁은 기기에서도 가로 스크롤이 생기지 않게.
+  // 패널 안쪽 여백 ~70px, 열 라벨 16px 을 빼고 좌·중·우 칸 수 + 구역 간격 2개가 들어가야 한다.
+  const G = 2, ZG = 8;
   const MAX  = FLOOR_ZONES[floor];
+  const cols = MAX.l + MAX.m + MAX.r;
+  const avail = Math.min(window.innerWidth || 480, 480) - 70 - 16;
+  const C = Math.max(6, Math.min(10, Math.floor((avail - 2 * ZG) / cols) - G));
   const lead = floorLeadPx(floor, C, G, ZG);
   const seatNum = parseInt(num);
 
@@ -2050,7 +2061,7 @@ function buildMiniSeat(floor, rowKey, num) {
     return h;
   }
 
-  let html = '<div style="overflow-x:auto;margin:8px 0;"><div style="display:flex;flex-direction:column;gap:${G}px;width:max-content;margin:0 auto;">';
+  let html = `<div style="overflow-x:auto;margin:8px 0;"><div style="display:flex;flex-direction:column;gap:${G}px;width:max-content;margin:0 auto;">`;
   let prevRow = null;
   plan.rows.forEach(r => {
     if (prevRow && (plan.gapAfter || []).includes(prevRow)) html += '<div style="height:7px;"></div>';
@@ -3064,7 +3075,7 @@ function renderStampBoards() {
   if (allDone) {
     html += `<div style="text-align:center;padding:12px 0 8px;">
       <button class="btn btn-primary" onclick="openAddStampBoard()" style="width:100%;padding:14px;">🆕 새 재관람카드 시작하기</button>
-      <p style="font-size:12px;color:var(--text3);margin-top:8px;">${DEFAULT_SLOTS}칸 · ${defaultMilestones().map(m => `${m.at}회:${m.reward}`).join(' · ')}</p>
+      <p style="font-size:12px;color:var(--text3);margin-top:8px;">${defaultMilestones().map(m => `${m.at}회:${m.reward.replace(/\s*\(.*?\)/, '')}`).join(' · ')}</p>
     </div>`;
   }
   if (!boards.length) { document.getElementById('stamp-boards-list').innerHTML = html; return; }

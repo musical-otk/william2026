@@ -72,6 +72,7 @@ function seed(W) {
 }
 
 const frame = document.getElementById('app');
+if (Q.get('w')) frame.style.width = Q.get('w') + 'px';   // 좁은 기기 폭 확인용
 frame.addEventListener('load', () => {
   const W = frame.contentWindow;
   const start = Date.now();
@@ -103,6 +104,8 @@ frame.addEventListener('load', () => {
       document.documentElement.setAttribute('data-theme', THEME);
     }
 
+    // 새 도장판 패널 (혜택 안내 확인용)
+    if (TAB === 'newcard') { W.openAddStampBoard(); document.title = 'SHOT newcard'; return; }
     // 기록 입력 폼 (배역 배치 확인용)
     if (TAB === 'form') { W.openAddRecord('2026-12-12'); document.title = 'SHOT form'; return; }
 
@@ -113,6 +116,11 @@ frame.addEventListener('load', () => {
       const target = W.getRecords()[0];   // 단층 극장
       W.openDetail(target.id);
       document.title = 'SHOT detail';
+      // ?measure=1 — 미니 좌석도 스크롤 여부 (scrollWidth/clientWidth) 를 제목에 남긴다
+      if (Q.get('measure')) setTimeout(() => {
+        const box = [...W.document.querySelectorAll('div')].find(d => d.style.overflowX === 'auto' && d.innerHTML.includes('flex-direction:column'));
+        document.title = box ? `MEASURE ${box.scrollWidth}/${box.clientWidth}` : 'MEASURE none';
+      }, 300);
       return;
     }
 
