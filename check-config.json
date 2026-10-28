@@ -152,5 +152,5 @@
     "manifest.json",
     "sw.js"
   ],
-  "_scan_files_note": "handover.html(인수인계 안내서)은 운영자 여부 미정이라 이 작품에는 아직 없다. 생기면 scan_files 에 다시 넣는다."
+  "_scan_files_note": "handover.html(인수인계 안내서)은 이 작품에 만들지 않는다 (사용자 결정 — 운영자 없음)."
 }

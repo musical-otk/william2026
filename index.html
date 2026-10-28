@@ -430,7 +430,7 @@
   <div id="stats-section-pairs" style="display:none;">
     <div class="card">
       <div class="card-title">🔗 조합별 통계</div>
-      <div style="font-size:11px;color:var(--text3);text-align:center;margin:0 0 10px;">3×3×3 — 스케줄에 등장하는 모든 조합. 행을 누르면 회차가 펼쳐집니다.</div>
+      <div style="font-size:11px;color:var(--text3);text-align:center;margin:0 0 10px;">3×3×4 — 스케줄에 등장하는 모든 조합. 행을 누르면 회차가 펼쳐집니다.</div>
       <div id="stats-pairs-result"></div>
     </div>
   </div>
@@ -2026,18 +2026,23 @@ function openDetail(id) {
 }
 
 // 미니 좌석도 (상세 패널용)
+// 화면 폭에 맞춰 칸 크기를 정한다 — 좁은 기기에서도 가로 스크롤이 생기지 않게.
+// 패널 안쪽 여백 ~70px, 열 라벨 16px 을 빼고 좌·중·우 칸 수 + 구역 간격 2개가 들어가야 한다.
+const MINI_SEAT_G = 2, MINI_SEAT_ZG = 8;
+function miniSeatCellPx(floor, viewW) {
+  const z = FLOOR_ZONES[floor];
+  const cols = z.l + z.m + z.r;
+  const avail = Math.min(viewW || 480, 480) - 70 - 16;
+  return Math.max(6, Math.min(10, Math.floor((avail - 2 * MINI_SEAT_ZG) / cols) - MINI_SEAT_G));
+}
 function buildMiniSeat(floor, rowKey, num) {
   if (!floor || !rowKey) return '';
   const plan = SEAT_PLAN[floor];
   if (!plan) return '';
   // 히트맵과 같은 FLOOR_ZONES 를 쓴다 (따로 두면 두 좌석도가 어긋난다)
-  // 화면 폭에 맞춰 칸 크기를 정한다 — 좁은 기기에서도 가로 스크롤이 생기지 않게.
-  // 패널 안쪽 여백 ~70px, 열 라벨 16px 을 빼고 좌·중·우 칸 수 + 구역 간격 2개가 들어가야 한다.
-  const G = 2, ZG = 8;
+  const G = MINI_SEAT_G, ZG = MINI_SEAT_ZG;
   const MAX  = FLOOR_ZONES[floor];
-  const cols = MAX.l + MAX.m + MAX.r;
-  const avail = Math.min(window.innerWidth || 480, 480) - 70 - 16;
-  const C = Math.max(6, Math.min(10, Math.floor((avail - 2 * ZG) / cols) - G));
+  const C = miniSeatCellPx(floor, window.innerWidth);
   const lead = floorLeadPx(floor, C, G, ZG);
   const seatNum = parseInt(num);
 
@@ -2795,7 +2800,7 @@ function queryPairStats() {
   const schedule = getSchedule();
   const records  = watchedOnly(getRecords());   // 양도 제외
 
-  // 3배역 각 3명 = 27조합뿐이라 거르지 않고 전부 집계한다
+  // 3×3×4 = 36조합뿐이라 거르지 않고 전부 집계한다
   const combos = {};
   // 스케줄 기준 집계
   schedule.forEach(s => {

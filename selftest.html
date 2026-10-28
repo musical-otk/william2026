@@ -169,6 +169,22 @@ t('U. 좌석', '공식 좌석도와 같은 자리에서 행이 끊긴다 (E·J �
   eq(g('SEAT_PLAN')['1층'].gapAfter, ['E', 'J'], '공식 좌석도의 행 간격');
 });
 
+t('U. 좌석', '미니 좌석도는 280~480px 기기에서 가로 스크롤이 없다', () => {
+  const G = g('MINI_SEAT_G'), ZG = g('MINI_SEAT_ZG'), Z = g('FLOOR_ZONES')['1층'];
+  const cols = Z.l + Z.m + Z.r;
+  [280, 320, 360, 375, 390, 412, 430, 480].forEach(w => {
+    const C = W.miniSeatCellPx('1층', w);
+    const need = 16 + cols * (C + G) + 2 * ZG;   // 라벨 + 칸 + 구역 간격
+    ok(need <= w - 70, `${w}px: 필요 ${need} > 가용 ${w - 70}`);
+    ok(C >= 6, `${w}px: 칸이 너무 작음 ${C}`);
+  });
+});
+t('U. 좌석', '미니 좌석도 행 간격이 실제로 들어간다 (템플릿 치환)', () => {
+  const html = W.buildMiniSeat('1층', 'C', 10);
+  ok(!html.includes('${'), '치환 안 된 ${…} 가 남아 있음');
+  ok(/flex-direction:column;gap:\d+px/.test(html), '행 간격 gap 이 숫자여야 함');
+});
+
 // ── S. 도장판 (재관람카드) ────────────────────────────
 t('S. 도장판', '7칸 · 마일스톤 3·5·7회 (선택지 없음)', () => {
   const ms = W.defaultMilestones();
@@ -243,6 +259,19 @@ t('S. 도장판', 'S3 — 3·5·7회에서 보상 발동', () => {
   fill(id, 1); eq(st(), [true,  false, false], '4회');
   fill(id, 1); eq(st(), [true,  true,  false], '5회');
   fill(id, 2); eq(st(), [true,  true,  true ], '7회');
+});
+
+t('S. 도장판', '새 카드 안내가 이 작품 보상 (3·5·7회)', () => {
+  const box = W.document.getElementById('overlay-stamp').textContent;
+  ['40% 할인권', '폴라로이드', '미니 실황 OST', '5회'].forEach(s => ok(box.includes(s), s + ' 누락'));
+  ['포토카드', '9종', '지정 사진'].forEach(s => ok(!box.includes(s), `FATED 문구 '${s}' 잔존`));
+});
+t('S. 도장판', '도장판 요약은 칸수·괄호 설명 없이 한 줄', () => {
+  reset();
+  W.renderStampBoards();
+  const p = W.document.querySelector('#stamp-boards-list p');
+  ok(p, '도장판이 없을 때 요약 문구가 보여야 함');
+  eq(p.textContent, '3회:40% 할인권 2매 · 5회:📸 폴라로이드 1매 · 7회:💿 미니 실황 OST');
 });
 
 // ── K. 40% 할인권 ─────────────────────────────────────
@@ -409,6 +438,16 @@ t('C. 할인', 'C2 — 차액 지불 체크가 기록에 남음', () => {
 });
 t('C. 할인', '쿠폰팩 없음 (특전 미공개)', () => {
   eq(g('COUPON_PACKS'), {});
+});
+
+t('E. 개조 정합성', '조합별 통계 안내가 3×3×4', () => {
+  ok(/3×3×4/.test(W.document.getElementById('page-stats').textContent), '조합 수 안내');
+});
+t('E. 개조 정합성', '포인트 배경 위 글자색이 테마마다 정의됨', () => {
+  const css = [...W.document.querySelectorAll('style')].map(s => s.textContent).join('');
+  eq((css.match(/--on-accent:/g) || []).length, 2, '라이트·다크 둘 다');
+  eq((css.match(/--accent-fill:/g) || []).length, 2, '버튼 채움색도 둘 다');
+  ok(!/background:var\(--accent\);color:#fff/.test(W.document.documentElement.outerHTML), '흰 글자 고정이 남아 있음');
 });
 
 // ── D. 데이터 ─────────────────────────────────────────
