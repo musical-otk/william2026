@@ -3584,8 +3584,10 @@ function stampMoveTargetsHtml(src, boards) {
     <div style="font-size:12px;font-weight:700;color:var(--text2);">선택한 ${qty}개를 옮길 카드</div>
     ${boards.filter(b => b.id !== src.id).map(b => {
       const room = b.totalSlots - b.currentCount;
-      return btn(`[🎫 ${b.name}]`, room >= qty ? `${b.currentCount}/${b.totalSlots}` : `남은 ${room}칸 — 부족`,
-                 `moveSelectedStamps('${b.id}')`, room < qty);
+      const sub = room === 0 ? '가득 참'
+                : room >= qty ? `${b.currentCount}/${b.totalSlots}`
+                : `${room}개 채우고 ${qty - room}개는 새 카드`;
+      return btn(`[🎫 ${b.name}]`, sub, `moveSelectedStamps('${b.id}')`, room === 0);
     }).join('')}
     ${btn('🆕 새 카드', `${DEFAULT_SLOTS}칸`, `moveSelectedStamps('new')`, qty > DEFAULT_SLOTS)}
   </div>`;
@@ -3604,45 +3606,63 @@ function moveStampEntries(srcId, idxs, destId) {
   const entries = idxs.map(i => src.history[i]).filter(Boolean);
   const qty = entries.reduce((s, h) => s + (h.qty || 1), 0);
 
-  let dest;
-  if (destId === 'new') {
-    const maxNum = boards.reduce((max, b) => { const n = parseInt(b.name); return (!isNaN(n) && n > max) ? n : max; }, 0);
-    dest = { id: uuid(), name: String(maxNum + 1), totalSlots: DEFAULT_SLOTS,
-             milestones: defaultMilestones(), currentCount: 0, history: [] };
-    boards.push(dest);
-  } else {
-    dest = boards.find(b => b.id === destId);
-  }
+  const nextName = () => String(boards.reduce((max, b) => { const n = parseInt(b.name); return (!isNaN(n) && n > max) ? n : max; }, 0) + 1);
+  const newBoard = () => ({ id: uuid(), name: nextName(), totalSlots: DEFAULT_SLOTS,
+                            milestones: defaultMilestones(), currentCount: 0, history: [] });
+  const dest = destId === 'new' ? newBoard() : boards.find(b => b.id === destId);
   if (!dest || dest.id === src.id) return false;
   const room = dest.totalSlots - dest.currentCount;
-  if (room < qty) { showToast(`[🎫 ${dest.name}] 남은 칸이 ${room}칸이라 ${qty}개를 옮길 수 없습니다`); return false; }
+  if (room <= 0) { showToast(`[🎫 ${dest.name}] 은 가득 찼습니다`); return false; }
 
-  // 원래 카드에서 이미 받은 혜택 단계 아래로 내려가면 확인
+  // 넘치면 날짜 순서대로 대상 카드를 채우고 나머지는 새 카드로 (관람 기록 저장 때 넘치는 것과 같은 방식).
+  // 서로 다른 카드는 합산할 수 없으므로 나머지는 기존 미완성 카드가 아니라 반드시 새 카드다.
+  // 한 이력에 여러 개가 묶여 있으면 경계에서 둘로 나눈다 (recordId 는 양쪽에 그대로 — 기록 삭제 시 둘 다 회수)
+  const sorted = [...entries].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const toDest = [], toOver = [];
+  let left = room;
+  sorted.forEach(h => {
+    const n = h.qty || 1;
+    if (left >= n)      { toDest.push(h); left -= n; }
+    else if (left > 0)  { toDest.push({ ...h, qty: left }); toOver.push({ ...h, qty: n - left }); left = 0; }
+    else                { toOver.push(h); }
+  });
+  const overQty = toOver.reduce((s, h) => s + (h.qty || 1), 0);
+  const over = overQty ? newBoard() : null;
+
+  // 확인 — 원래 카드 혜택 취소와 넘침을 한 번에 묻는다
+  const notes = [];
   const after = src.currentCount - qty;
   const lost  = (src.milestones || []).filter(m => m.notified && after < m.at);
   if (lost.length) {
     const what = lost.map(m => `${m.at}회 혜택(${m.reward.replace(/\s*\(.*?\)/, '')})`).join(', ');
-    if (!confirm(`[🎫 ${src.name}] 의 ${what}이 취소됩니다.\n카드를 변경할까요?`)) return false;
+    notes.push(`[🎫 ${src.name}] 의 ${what}이 취소됩니다.`);
   }
+  if (over) notes.push(`[🎫 ${dest.name}] 에 ${qty - overQty}개를 채우고, 남는 ${overQty}개는 새 [🎫 ${over.name}] 카드로 갑니다.`);
+  if (notes.length && !confirm(notes.join('\n') + '\n카드를 변경할까요?')) return false;
 
   [...idxs].sort((a, b) => b - a).forEach(i => src.history.splice(i, 1));
-  dest.history.push(...entries);
+  if (destId === 'new') boards.push(dest);
+  dest.history.push(...toDest);
+  if (over) { boards.push(over); over.history.push(...toOver); }
   recalcStampCount(src);  revalidateMilestones(src);
-  recalcStampCount(dest); triggerMilestonesIfNeeded(dest, dest.id);
+  [dest, over].filter(Boolean).forEach(b => { recalcStampCount(b); triggerMilestonesIfNeeded(b, b.id); });
   saveStampBoards(boards);
 
-  // 연동된 관람 기록도 새 카드를 가리키게 한다
+  // 연동된 관람 기록도 새 카드를 가리키게 한다 (둘로 나뉜 이력은 먼저 채운 카드 쪽)
+  const landed = h => toDest.some(x => x.recordId ? x.recordId === h.recordId : x === h) ? dest : over;
   const records = getRecords();
   let changed = false;
-  entries.forEach(h => {
+  sorted.forEach(h => {
     const r = h.recordId
       ? records.find(x => x.id === h.recordId)
       : records.find(x => x.stampBoardId === srcId && x.date === h.date);
-    if (r && r.stampBoardId === srcId) { r.stampBoardId = dest.id; changed = true; }
+    if (r && r.stampBoardId === srcId) { r.stampBoardId = landed(h).id; changed = true; }
   });
   if (changed) saveRecords(records);
 
-  showToast(`도장 ${qty}개를 [🎫 ${dest.name}] 카드로 변경했습니다`);
+  showToast(over
+    ? `도장 ${qty - overQty}개는 [🎫 ${dest.name}], ${overQty}개는 새 [🎫 ${over.name}] 카드로 변경했습니다`
+    : `도장 ${qty}개를 [🎫 ${dest.name}] 카드로 변경했습니다`);
   return true;
 }
 
@@ -3673,8 +3693,9 @@ function populateDirectStampCards(boardId, qty) {
   sel.innerHTML = boards.map(b => {
     const room = b.totalSlots - b.currentCount;
     const cur  = b.id === boardId;
-    const full = !cur && room < qty;
-    return `<option value="${b.id}"${cur ? ' selected' : ''}${full ? ' disabled' : ''}>[🎫 ${b.name}] ${b.currentCount}/${b.totalSlots}${cur ? ' (지금)' : full ? ' — 칸 부족' : ''}</option>`;
+    const full = !cur && room === 0;
+    const over = !cur && room > 0 && room < qty;
+    return `<option value="${b.id}"${cur ? ' selected' : ''}${full ? ' disabled' : ''}>[🎫 ${b.name}] ${b.currentCount}/${b.totalSlots}${cur ? ' (지금)' : full ? ' — 가득 참' : over ? ` — ${qty - room}개는 새 카드` : ''}</option>`;
   }).join('') + `<option value="new">🆕 새 카드</option>`;
 }
 function editStampHistoryItem(boardId, origIdx) {

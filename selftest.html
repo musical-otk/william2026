@@ -321,12 +321,48 @@ t('M. 카드 변경', '옮겨 간 카드에서 혜택 단계를 넘으면 달성
   eq(boards().find(x => x.id === b).milestones.find(m => m.at === 3).notified, true);
   eq(coupon40(), 2);
 });
-t('M. 카드 변경', '남은 칸이 모자라면 옮기지 않음', () => {
+t('M. 카드 변경', '넘치면 날짜순으로 채우고 나머지는 새 카드 (확인 후)', () => {
+  reset();
+  const a = newBoard(1), b = newBoard(2);
+  stamps(a, 3); stamps(b, 5);
+  let msg = ''; W.confirm = m => { msg = m; return true; };
+  ok(W.moveStampEntries(a, [0, 1, 2], b));
+  W.confirm = () => false;
+  ok(/\[🎫 2\] 에 2개를 채우고, 남는 1개는 새 \[🎫 3\] 카드/.test(msg), '넘침 안내: ' + msg);
+  eq(boards().map(x => [x.name, x.currentCount]), [['1', 0], ['2', 7], ['3', 1]]);
+  const last = boards().find(x => x.name === '3').history[0].date;
+  eq(last, '2026-12-10', '가장 늦은 날짜가 새 카드로');
+});
+t('M. 카드 변경', '넘침 확인을 거절하면 그대로', () => {
   reset();
   const a = newBoard(1), b = newBoard(2);
   stamps(a, 2); stamps(b, 6);
-  ok(!W.moveStampEntries(a, [0, 1], b), '2개를 1칸에 못 넣음');
-  eq([countOf(a), countOf(b)], [2, 6]);
+  W.confirm = () => false;
+  ok(!W.moveStampEntries(a, [0, 1], b));
+  eq(boards().map(x => [x.name, x.currentCount]), [['1', 2], ['2', 6]], '새 카드도 안 생김');
+});
+t('M. 카드 변경', '가득 찬 카드로는 못 옮김', () => {
+  reset();
+  const a = newBoard(1), b = newBoard(2);
+  stamps(a, 1); stamps(b, 7);
+  ok(!W.moveStampEntries(a, [0], b));
+  eq([countOf(a), countOf(b)], [1, 7]);
+});
+t('M. 카드 변경', '한 이력에 묶인 도장은 경계에서 나눠 넘긴다 (기록 삭제 시 양쪽 회수)', () => {
+  reset();
+  const a = newBoard(1), b = newBoard(2);
+  stamps(b, 6);
+  const recs = addRecordViaForm({ date: D1, time: T1, cast: { samuel: '원종환' }, boardId: a });
+  const bs = boards(); const h = bs.find(x => x.id === a).history.find(x => x.recordId === recs[0].id);
+  h.qty = 2; W.saveStampBoards(bs);                       // 2개 묶음으로 만든다
+  const i = boards().find(x => x.id === a).history.findIndex(x => x.recordId === recs[0].id);
+  W.confirm = () => true;
+  ok(W.moveStampEntries(a, [i], b));
+  W.confirm = () => false;
+  eq(boards().map(x => [x.name, x.currentCount]), [['1', 0], ['2', 7], ['3', 1]]);
+  eq(W.getRecords()[0].stampBoardId, b, '기록은 먼저 채운 카드');
+  deleteRecordById(recs[0].id);
+  eq(boards().map(x => x.currentCount), [0, 6, 0], '삭제 시 나뉜 두 카드에서 모두 회수');
 });
 t('M. 카드 변경', '새 카드로 옮기면 다음 번호 카드가 생긴다', () => {
   reset();
@@ -359,7 +395,7 @@ t('M. 카드 변경', '이력 패널 — 이동 모드에서 골라 대상 카�
   W.toggleStampMoveSel(0, true);
   const txt = d.getElementById('stamp-history-panel-content').textContent;
   ok(/선택한 3개를 옮길 카드/.test(txt), txt);
-  ok(/남은 1칸 — 부족/.test(txt), '칸이 모자란 카드는 비활성');
+  ok(/1개 채우고 2개는 새 카드/.test(txt), '칸이 모자란 카드는 넘침 안내');
   ok(/새 카드/.test(txt));
   W.toggleStampMoveMode();
   W.closePanel('overlay-stamp-history');
@@ -406,6 +442,7 @@ t('M. 카드 변경', '📝 수정 — 칸 부족한 카드는 고를 수 없음
   W.editStampHistoryItem(a, 0);
   const opt = [...W.document.getElementById('direct-stamp-card').options].find(o => o.value === b);
   eq(opt.disabled, true, '가득 찬 카드는 비활성');
+  ok(/가득 참/.test(opt.textContent));
   W.closePanel('overlay-direct-stamp');
   W.openStampHistory(a);
   W.openAddStampHistoryDirectFromPanel();
