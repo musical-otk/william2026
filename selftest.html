@@ -274,12 +274,12 @@ t('S. 도장판', '도장판 요약은 칸수·괄호 설명 없이 한 줄', ()
   eq(p.textContent, '3회:40% 할인권 2매 · 5회:📸 폴라로이드 1매 · 7회:💿 미니 실황 OST');
 });
 
-// ── M. 도장 이동 ──────────────────────────────────────
+// ── M. 도장 카드 변경 ──────────────────────────────────────
 // fill() 은 n개를 이력 1건으로 찍는다. 이동은 이력 단위라 여기선 1개씩 따로 찍는다.
 function stamps(id, n) {
   for (let i = 0; i < n; i++) { W.applyStampToBoard(id, 1, `2026-12-${String(8 + i).padStart(2, '0')}`, '테스트'); W.applyStampToBoard._lastOverflow = 0; }
 }
-t('M. 도장 이동', '혜택 단계가 안 깨지는 이동은 확인 없이 바로', () => {
+t('M. 카드 변경', '혜택 단계가 안 깨지는 이동은 확인 없이 바로', () => {
   reset();
   const a = newBoard(1), b = newBoard(2);
   stamps(a, 4);
@@ -290,7 +290,7 @@ t('M. 도장 이동', '혜택 단계가 안 깨지는 이동은 확인 없이 �
   eq([countOf(a), countOf(b)], [3, 1]);
   eq(coupon40(), 2, '1번 카드 3회 혜택 유지');
 });
-t('M. 도장 이동', '혜택이 취소되면 확인 — 거절하면 그대로', () => {
+t('M. 카드 변경', '혜택이 취소되면 확인 — 거절하면 그대로', () => {
   reset();
   const a = newBoard(1), b = newBoard(2);
   stamps(a, 3);
@@ -301,7 +301,7 @@ t('M. 도장 이동', '혜택이 취소되면 확인 — 거절하면 그대로'
   eq([countOf(a), countOf(b)], [3, 0], '아무것도 바뀌지 않음');
   eq(coupon40(), 2);
 });
-t('M. 도장 이동', '혜택이 취소되면 확인 — 승인하면 할인권도 같이 줄어듦', () => {
+t('M. 카드 변경', '혜택이 취소되면 확인 — 승인하면 할인권도 같이 줄어듦', () => {
   reset();
   const a = newBoard(1), b = newBoard(2);
   stamps(a, 3);
@@ -312,7 +312,7 @@ t('M. 도장 이동', '혜택이 취소되면 확인 — 승인하면 할인권�
   eq(boards().find(x => x.id === a).milestones.find(m => m.at === 3).notified, false, '3회 달성 취소');
   eq(coupon40(), 0, '40% 할인권 2매 회수');
 });
-t('M. 도장 이동', '옮겨 간 카드에서 혜택 단계를 넘으면 달성', () => {
+t('M. 카드 변경', '옮겨 간 카드에서 혜택 단계를 넘으면 달성', () => {
   reset();
   const a = newBoard(1), b = newBoard(2);
   stamps(a, 2); stamps(b, 2);
@@ -321,21 +321,21 @@ t('M. 도장 이동', '옮겨 간 카드에서 혜택 단계를 넘으면 달성
   eq(boards().find(x => x.id === b).milestones.find(m => m.at === 3).notified, true);
   eq(coupon40(), 2);
 });
-t('M. 도장 이동', '남은 칸이 모자라면 옮기지 않음', () => {
+t('M. 카드 변경', '남은 칸이 모자라면 옮기지 않음', () => {
   reset();
   const a = newBoard(1), b = newBoard(2);
   stamps(a, 2); stamps(b, 6);
   ok(!W.moveStampEntries(a, [0, 1], b), '2개를 1칸에 못 넣음');
   eq([countOf(a), countOf(b)], [2, 6]);
 });
-t('M. 도장 이동', '새 카드로 옮기면 다음 번호 카드가 생긴다', () => {
+t('M. 카드 변경', '새 카드로 옮기면 다음 번호 카드가 생긴다', () => {
   reset();
   const a = newBoard(1);
   stamps(a, 2);
   ok(W.moveStampEntries(a, [1], 'new'));
   eq(boards().map(x => [x.name, x.currentCount]), [['1', 1], ['2', 1]]);
 });
-t('M. 도장 이동', '관람 기록의 카드 연동도 따라간다', () => {
+t('M. 카드 변경', '관람 기록의 카드 연동도 따라간다', () => {
   reset();
   const a = newBoard(1), b = newBoard(2);
   const recs = addRecordViaForm({ date: D1, time: T1, cast: { samuel: '원종환' }, boardId: a });
@@ -346,7 +346,7 @@ t('M. 도장 이동', '관람 기록의 카드 연동도 따라간다', () => {
   deleteRecordById(recs[0].id);
   eq([countOf(a), countOf(b)], [0, 0], '기록 삭제 시 옮겨 간 카드에서 회수');
 });
-t('M. 도장 이동', '이력 패널 — 이동 모드에서 골라 대상 카드 버튼이 뜬다', () => {
+t('M. 카드 변경', '이력 패널 — 이동 모드에서 골라 대상 카드 버튼이 뜬다', () => {
   reset();
   const a = newBoard(1), b = newBoard(2);
   fill(a, 3); fill(b, 6);
@@ -355,7 +355,7 @@ t('M. 도장 이동', '이력 패널 — 이동 모드에서 골라 대상 카�
   eq(d.querySelectorAll('.stamp-move-pick').length, 0, '처음엔 체크박스 없음');
   W.toggleStampMoveMode();
   eq(d.querySelectorAll('.stamp-move-pick').length, 1, '이력 항목마다 체크박스 (3개 묶음 1건)');
-  ok(/옮길 도장을 골라/.test(d.getElementById('stamp-history-panel-content').textContent));
+  ok(/카드를 바꿀 도장을 골라/.test(d.getElementById('stamp-history-panel-content').textContent));
   W.toggleStampMoveSel(0, true);
   const txt = d.getElementById('stamp-history-panel-content').textContent;
   ok(/선택한 3개를 옮길 카드/.test(txt), txt);
@@ -363,6 +363,54 @@ t('M. 도장 이동', '이력 패널 — 이동 모드에서 골라 대상 카�
   ok(/새 카드/.test(txt));
   W.toggleStampMoveMode();
   W.closePanel('overlay-stamp-history');
+});
+
+t('M. 카드 변경', '📝 수정에서도 카드 변경 — 관람 연동 도장은 날짜·코멘트 잠금', () => {
+  reset();
+  const a = newBoard(1), b = newBoard(2);
+  const recs = addRecordViaForm({ date: D1, time: T1, cast: { samuel: '원종환' }, boardId: a });
+  const d = W.document;
+  W.openStampHistory(a);
+  const i = boards().find(x => x.id === a).history.findIndex(h => h.recordId === recs[0].id);
+  ok(d.querySelectorAll('#stamp-history-panel-content .btn-icon').length >= 2, '연동 항목에도 📝·✕ 가 있어야 함');
+  W.editStampHistoryItem(a, i);
+  eq(d.getElementById('direct-stamp-card-group').style.display, '', '카드 칸이 보여야 함');
+  eq(d.getElementById('direct-stamp-date').disabled, true, '연동 항목은 날짜 잠금');
+  eq(d.getElementById('direct-stamp-card').value, a, '지금 카드가 선택돼 있어야 함');
+  d.getElementById('direct-stamp-card').value = b;
+  W.saveDirectStampHistory();
+  eq([countOf(a), countOf(b)], [0, 1]);
+  eq(W.getRecords()[0].stampBoardId, b, '기록도 2번 카드로');
+  W.closePanel('overlay-stamp-history');
+});
+t('M. 카드 변경', '📝 수정 — 직접 입력 도장은 날짜와 카드를 한 번에', () => {
+  reset();
+  const a = newBoard(1), b = newBoard(2);
+  stamps(a, 1);
+  W.openStampHistory(a);
+  W.editStampHistoryItem(a, 0);
+  const d = W.document;
+  eq(d.getElementById('direct-stamp-date').disabled, false);
+  d.getElementById('direct-stamp-date').value = '2026-12-20';
+  d.getElementById('direct-stamp-card').value = b;
+  W.saveDirectStampHistory();
+  eq([countOf(a), countOf(b)], [0, 1]);
+  eq(boards().find(x => x.id === b).history[0].date, '2026-12-20', '바뀐 날짜로 옮겨짐');
+  W.closePanel('overlay-stamp-history');
+});
+t('M. 카드 변경', '📝 수정 — 칸 부족한 카드는 고를 수 없음, 추가 모드엔 카드 칸 없음', () => {
+  reset();
+  const a = newBoard(1), b = newBoard(2);
+  stamps(a, 1); stamps(b, 7);
+  W.openStampHistory(a);
+  W.editStampHistoryItem(a, 0);
+  const opt = [...W.document.getElementById('direct-stamp-card').options].find(o => o.value === b);
+  eq(opt.disabled, true, '가득 찬 카드는 비활성');
+  W.closePanel('overlay-direct-stamp');
+  W.openStampHistory(a);
+  W.openAddStampHistoryDirectFromPanel();
+  eq(W.document.getElementById('direct-stamp-card-group').style.display, 'none', '이력 추가에는 카드 칸 없음');
+  W.closePanel('overlay-direct-stamp');
 });
 
 // ── K. 40% 할인권 ─────────────────────────────────────

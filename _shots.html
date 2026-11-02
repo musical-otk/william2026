@@ -104,7 +104,15 @@ frame.addEventListener('load', () => {
       document.documentElement.setAttribute('data-theme', THEME);
     }
 
-    // 도장 이동 모드 (이력 패널에서 2건 고른 상태)
+    // 도장 이력 수정 패널 (관람 연동 도장 — 카드 칸 확인용)
+    if (TAB === 'stampedit') {
+      const bs = W.getStampBoards();
+      bs.push({ id: 'b2', name: '2', totalSlots: W.eval('DEFAULT_SLOTS'), milestones: W.defaultMilestones(), currentCount: 0, history: [] });
+      W.saveStampBoards(bs);
+      W.openStampHistory(bs[0].id); W.editStampHistoryItem(bs[0].id, 0);
+      document.title = 'SHOT stampedit'; return;
+    }
+    // 도장 카드 변경 모드 (이력 패널에서 2건 고른 상태)
     if (TAB === 'stampmove') {
       const bs = W.getStampBoards();
       bs.push({ id: 'b2', name: '2', totalSlots: W.eval('DEFAULT_SLOTS'), milestones: W.defaultMilestones(), currentCount: 0, history: [] });
