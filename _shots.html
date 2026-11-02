@@ -104,6 +104,17 @@ frame.addEventListener('load', () => {
       document.documentElement.setAttribute('data-theme', THEME);
     }
 
+    // 도장 이동 모드 (이력 패널에서 2건 고른 상태)
+    if (TAB === 'stampmove') {
+      const bs = W.getStampBoards();
+      bs.push({ id: 'b2', name: '2', totalSlots: W.eval('DEFAULT_SLOTS'), milestones: W.defaultMilestones(), currentCount: 0, history: [] });
+      W.saveStampBoards(bs);
+      const ct = W.document.querySelector(`.tab-btn[onclick*="'coupon'"]`); if (ct) W.switchTab('coupon', ct);
+      W.openStampHistory(bs[0].id); W.toggleStampMoveMode();
+      const h = W.getStampBoards()[0].history;
+      W.toggleStampMoveSel(h.length - 1, true); W.toggleStampMoveSel(h.length - 2, true);
+      document.title = 'SHOT stampmove'; return;
+    }
     // 새 도장판 패널 (혜택 안내 확인용)
     if (TAB === 'newcard') { W.openAddStampBoard(); document.title = 'SHOT newcard'; return; }
     // 기록 입력 폼 (배역 배치 확인용)

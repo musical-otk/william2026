@@ -871,7 +871,8 @@
       <div class="panel-title" id="stamp-history-panel-title">이력</div>
       <button class="btn-icon" onclick="closePanel('overlay-stamp-history')">✕</button>
     </div>
-    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+    <div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:8px;">
+      <button class="btn btn-outline btn-sm" id="stamp-move-toggle" onclick="toggleStampMoveMode()">↪ 이동</button>
       <button class="btn btn-outline btn-sm" onclick="openAddStampHistoryDirectFromPanel()">+ 이력 추가</button>
     </div>
     <div id="stamp-history-panel-content"></div>
@@ -3484,6 +3485,7 @@ let _stampHistoryTargetId     = null;
 
 function openStampHistory(boardId) {
   _stampHistoryPanelBoardId = boardId;
+  _stampMoveMode = false; _stampMoveSel.clear();
   renderStampHistoryPanel(); openPanel('overlay-stamp-history');
 }
 function renderStampHistoryPanel() {
@@ -3529,19 +3531,110 @@ function renderStampHistoryPanel() {
     const qtyLabel = qty>1?` ×${qty}`:'';
     const msAfter = Object.entries(milestoneIdxMap).filter(([,idx])=>idx===i).map(([at])=>msDivider(Number(at))).join('');
     const is4thMs = milestoneIdxMap[4] === i;
+    const pick = _stampMoveMode
+      ? `<input type="checkbox" class="stamp-move-pick" ${_stampMoveSel.has(origIdx)?'checked':''} onchange="toggleStampMoveSel(${origIdx},this.checked)" style="width:16px;height:16px;margin:2px 10px 0 0;accent-color:var(--accent);flex-shrink:0;">`
+      : '';
     return `<div class="history-item" style="align-items:flex-start;">
-      <div style="flex:1;min-width:0;">
+      ${pick}<div style="flex:1;min-width:0;">
         <div style="font-size:10px;color:var(--text3);margin-bottom:2px;">${dateStr}</div>
         <div style="font-size:12px;font-weight:500;color:var(--text2);">${baseMethod}${qtyLabel}</div>
         ${h.comment?`<div style="font-size:11px;color:var(--text3);margin-top:1px;">${h.comment}</div>`:''}
       </div>
-      <div style="display:flex;gap:4px;flex-shrink:0;margin-left:8px;align-items:center;">
+      <div style="display:${_stampMoveMode?'none':'flex'};gap:4px;flex-shrink:0;margin-left:8px;align-items:center;">
         ${is4thMs ? m4Buttons() : ''}
         ${!h.recordId?`<button class="btn-icon" style="font-size:12px;color:var(--text3);" onclick="editStampHistoryItem('${boardId}',${origIdx})">📝</button>`:''}
         <button class="btn-icon" style="font-size:12px;color:var(--danger);" onclick="deleteStampHistoryItemFromPanel('${boardId}',${origIdx})">✕</button>
       </div>
     </div>${msAfter}`;
-  }).join('') + '</div>';
+  }).join('') + '</div>' + (_stampMoveMode ? stampMoveTargetsHtml(board, boards) : '');
+  const tg = document.getElementById('stamp-move-toggle');
+  if (tg) tg.textContent = _stampMoveMode ? '취소' : '↪ 이동';
+}
+
+// ── 도장 이동 ──
+// 이력에서 여러 개를 골라 다른 카드로 옮긴다 (원래 1번에 찍었는데 실제로는 2번 카드였던 경우 등).
+// 기록 연동(recordId)은 그대로 따라가고, 원래 카드에서 혜택 단계가 깨지면 확인을 받는다.
+let _stampMoveMode = false;
+const _stampMoveSel = new Set();
+function toggleStampMoveMode() {
+  _stampMoveMode = !_stampMoveMode; _stampMoveSel.clear();
+  renderStampHistoryPanel();
+}
+function toggleStampMoveSel(idx, on) {
+  on ? _stampMoveSel.add(idx) : _stampMoveSel.delete(idx);
+  renderStampHistoryPanel();
+}
+function stampMoveTargetsHtml(src, boards) {
+  if (!_stampMoveSel.size) return '<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px 0 4px;">옮길 도장을 골라주세요</div>';
+  const qty = [..._stampMoveSel].reduce((s, i) => s + ((src.history[i] || {}).qty || 1), 0);
+  boards.forEach(b => recalcStampCount(b));
+  const btn = (label, sub, onclick, disabled) =>
+    `<button class="btn btn-outline btn-sm" style="width:100%;display:flex;justify-content:space-between;margin-top:6px;${disabled?'opacity:0.45;':''}" ${disabled?'disabled':`onclick="${onclick}"`}>
+       <span>${label}</span><span style="color:var(--text3);font-weight:400;">${sub}</span></button>`;
+  return `<div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--border);">
+    <div style="font-size:12px;font-weight:700;color:var(--text2);">선택한 ${qty}개를 옮길 카드</div>
+    ${boards.filter(b => b.id !== src.id).map(b => {
+      const room = b.totalSlots - b.currentCount;
+      return btn(`[🎫 ${b.name}]`, room >= qty ? `${b.currentCount}/${b.totalSlots}` : `남은 ${room}칸 — 부족`,
+                 `moveSelectedStamps('${b.id}')`, room < qty);
+    }).join('')}
+    ${btn('🆕 새 카드', `${DEFAULT_SLOTS}칸`, `moveSelectedStamps('new')`, qty > DEFAULT_SLOTS)}
+  </div>`;
+}
+function moveSelectedStamps(destId) {
+  const ok = moveStampEntries(_stampHistoryPanelBoardId, [..._stampMoveSel], destId);
+  if (!ok) return;
+  _stampMoveMode = false; _stampMoveSel.clear();
+  renderStampHistoryPanel(); renderStampBoards(); renderCouponList(); renderHome(); populateStampSelect();
+}
+function moveStampEntries(srcId, idxs, destId) {
+  const boards = getStampBoards();
+  boards.forEach(b => recalcStampCount(b));
+  const src = boards.find(b => b.id === srcId);
+  if (!src || !idxs.length) return false;
+  const entries = idxs.map(i => src.history[i]).filter(Boolean);
+  const qty = entries.reduce((s, h) => s + (h.qty || 1), 0);
+
+  let dest;
+  if (destId === 'new') {
+    const maxNum = boards.reduce((max, b) => { const n = parseInt(b.name); return (!isNaN(n) && n > max) ? n : max; }, 0);
+    dest = { id: uuid(), name: String(maxNum + 1), totalSlots: DEFAULT_SLOTS,
+             milestones: defaultMilestones(), currentCount: 0, history: [] };
+    boards.push(dest);
+  } else {
+    dest = boards.find(b => b.id === destId);
+  }
+  if (!dest || dest.id === src.id) return false;
+  const room = dest.totalSlots - dest.currentCount;
+  if (room < qty) { showToast(`[🎫 ${dest.name}] 남은 칸이 ${room}칸이라 ${qty}개를 옮길 수 없습니다`); return false; }
+
+  // 원래 카드에서 이미 받은 혜택 단계 아래로 내려가면 확인
+  const after = src.currentCount - qty;
+  const lost  = (src.milestones || []).filter(m => m.notified && after < m.at);
+  if (lost.length) {
+    const what = lost.map(m => `${m.at}회 혜택(${m.reward.replace(/\s*\(.*?\)/, '')})`).join(', ');
+    if (!confirm(`[🎫 ${src.name}] 의 ${what}이 취소됩니다.\n이동할까요?`)) return false;
+  }
+
+  [...idxs].sort((a, b) => b - a).forEach(i => src.history.splice(i, 1));
+  dest.history.push(...entries);
+  recalcStampCount(src);  revalidateMilestones(src);
+  recalcStampCount(dest); triggerMilestonesIfNeeded(dest, dest.id);
+  saveStampBoards(boards);
+
+  // 연동된 관람 기록도 새 카드를 가리키게 한다
+  const records = getRecords();
+  let changed = false;
+  entries.forEach(h => {
+    const r = h.recordId
+      ? records.find(x => x.id === h.recordId)
+      : records.find(x => x.stampBoardId === srcId && x.date === h.date);
+    if (r && r.stampBoardId === srcId) { r.stampBoardId = dest.id; changed = true; }
+  });
+  if (changed) saveRecords(records);
+
+  showToast(`도장 ${qty}개를 [🎫 ${dest.name}] 로 옮겼습니다`);
+  return true;
 }
 
 function openAddStampHistoryDirectFromPanel() {
