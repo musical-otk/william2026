@@ -623,20 +623,33 @@ t('R. 기록', 'R9 — 스케줄과 다르게 적은 캐스팅은 castManual', (
 });
 
 // ── C. 할인 ───────────────────────────────────────────
-t('C. 할인', '할인 목록이 공식 8종 + 정가 + 타임세일', () => {
+t('C. 할인', '할인 목록이 공식 9종 + 정가 + 타임세일', () => {
   const opts = [...W.document.getElementById('rec-discount-type').options].map(o => o.value).filter(Boolean);
   eq(opts, ['정가','프리뷰 할인','연애인 프리미엄 할인','셰익스피어의 할인','3인 클럽 할인',
-            '윌리엄 할인','재관람 할인','재관람카드 40% 할인권','복지할인','타임세일']);
+            '윌리엄 할인','재관람 할인','재관람카드 40% 할인권','복지할인','수험생 할인','타임세일']);
   opts.forEach(o => ok(g('DISCOUNT_LABEL')[o], `DISCOUNT_LABEL 에 '${o}' 없음`));
 });
 t('C. 할인', '할인율이 공식 안내와 일치', () => {
   eq(g('DISCOUNT_RATE'), { '프리뷰 할인': 40, '연애인 프리미엄 할인': 40, '셰익스피어의 할인': 15, '3인 클럽 할인': 20,
-                           '윌리엄 할인': 35, '재관람 할인': 30, '재관람카드 40% 할인권': 40, '복지할인': 50 });
+                           '윌리엄 할인': 35, '재관람 할인': 30, '재관람카드 40% 할인권': 40, '복지할인': 50, '수험생 할인': 40 });
+});
+t('C. 할인', '연애인 프리미엄 할인은 12/31 회차까지만 고를 수 있다', () => {
+  const d = W.document, sel = d.getElementById('rec-discount-type'), dt = d.getElementById('rec-date');
+  const opt = () => [...sel.options].find(o => o.value === '연애인 프리미엄 할인');
+  eq(g('DISCOUNT_UNTIL'), { '연애인 프리미엄 할인': '2026-12-31' });
+  dt.value = '2026-12-31'; W.applyDiscountLimits(true); ok(!opt().disabled, '12/31 은 선택 가능');
+  dt.value = '2027-01-01'; W.applyDiscountLimits(true); ok(opt().disabled, '1/1 은 선택 불가');
+  const other = [...sel.options].filter(o => o.value && o.value !== '연애인 프리미엄 할인');
+  ok(other.every(o => !o.disabled), '다른 할인은 그대로');
+  sel.value = '연애인 프리미엄 할인'; W.applyDiscountLimits(false);
+  eq(sel.value, '연애인 프리미엄 할인', '옛 기록 값은 유지');
+  W.applyDiscountLimits(true); eq(sel.value, '', '날짜를 바꾸면 막힌 값은 비운다');
+  dt.value = ''; W.applyDiscountLimits(false);
 });
 t('C. 할인', '차액 지불 체크는 증빙이 필요한 할인에서만 보인다', () => {
   const d = W.document, sel = d.getElementById('rec-discount-type'), grp = d.getElementById('rec-paid-diff-group');
   const shown = v => { sel.value = v; W.onDiscountTypeChange(); return grp.style.display !== 'none'; };
-  ['재관람 할인','셰익스피어의 할인','윌리엄 할인','연애인 프리미엄 할인','복지할인','재관람카드 40% 할인권']
+  ['재관람 할인','셰익스피어의 할인','윌리엄 할인','연애인 프리미엄 할인','복지할인','수험생 할인','재관람카드 40% 할인권']
     .forEach(v => ok(shown(v), v + ' — 보여야 함'));
   ['', '정가', '프리뷰 할인', '3인 클럽 할인'].forEach(v => ok(!shown(v), (v || '없음') + ' — 숨겨야 함'));
 });

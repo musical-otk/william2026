@@ -549,7 +549,7 @@
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">날짜 *</label>
-        <input type="date" class="form-control" id="rec-date" onchange="autoFillCasting()">
+        <input type="date" class="form-control" id="rec-date" onchange="autoFillCasting(); applyDiscountLimits(true)">
       </div>
       <div class="form-group">
         <label class="form-label">시간 *</label>
@@ -645,6 +645,7 @@
         <option value="재관람 할인">재관람 할인 (30%)</option>
         <option value="재관람카드 40% 할인권">재관람카드 40% 할인권</option>
         <option value="복지할인">복지할인 (50%)</option>
+        <option value="수험생 할인">수험생 할인 (40%)</option>
         <option value="타임세일">타임세일</option>
       </select>
       <div id="rec-discount-warn" style="display:none;margin-top:6px;font-size:12px;color:var(--danger);">⚠ 현재 보유한 쿠폰이 없습니다</div>
@@ -1333,16 +1334,17 @@ const DISCOUNT_LABEL = {
   '재관람 할인':           '재관람 할인 (30%)',
   '재관람카드 40% 할인권': '재관람카드 40% 할인권',
   '복지할인':              '복지할인 (50%)',
+  '수험생 할인':           '수험생 할인 (40%)',
   '타임세일':              '타임세일'      // 회차마다 할인율이 달라 율을 적지 않는다
 };
 // 할인율 — 절감액 계산용 (정가: A~L열 R석 70,000원 / M~R열 S석 50,000원)
 const DISCOUNT_RATE = {
   '프리뷰 할인': 40, '연애인 프리미엄 할인': 40, '셰익스피어의 할인': 15, '3인 클럽 할인': 20,
-  '윌리엄 할인': 35, '재관람 할인': 30, '재관람카드 40% 할인권': 40, '복지할인': 50
+  '윌리엄 할인': 35, '재관람 할인': 30, '재관람카드 40% 할인권': 40, '복지할인': 50, '수험생 할인': 40
 };
 // 증빙 미지참 시 현장에서 차액을 내는 할인 — 이 할인에서만 '차액 지불' 체크가 보인다
 const DISCOUNT_NEEDS_PROOF = new Set([
-  '연애인 프리미엄 할인', '셰익스피어의 할인', '윌리엄 할인', '재관람 할인', '재관람카드 40% 할인권', '복지할인'
+  '연애인 프리미엄 할인', '셰익스피어의 할인', '윌리엄 할인', '재관람 할인', '재관람카드 40% 할인권', '복지할인', '수험생 할인'
 ]);
 const COUPON_ITEMS = [
   { key: 'discount40', label: '40% 실물 할인권', short: '40%' },
@@ -1556,6 +1558,20 @@ function onZoneChange() {
 // ============================================================
 // DISCOUNT TYPE CHANGE
 // ============================================================
+// 할인별 관람일 상한 — 이 날짜(포함)까지만 고를 수 있다. 연애인 프리미엄 회원제는 2026-12-31 종료.
+const DISCOUNT_UNTIL = { '연애인 프리미엄 할인': '2026-12-31' };
+function isDiscountAllowed(type, date) {
+  const until = DISCOUNT_UNTIL[type];
+  return !until || !date || date <= until;
+}
+// 회차 날짜가 상한을 넘으면 그 option 을 막는다. clearSelected=true(날짜를 바꾼 경우)면 막힌 값이 골라져 있을 때 비운다.
+// 옛 기록을 열 때(false)는 값을 그대로 둔다 — 새로 고를 수만 없다.
+function applyDiscountLimits(clearSelected) {
+  const sel = document.getElementById('rec-discount-type');
+  const date = document.getElementById('rec-date').value;
+  [...sel.options].forEach(o => { o.disabled = !isDiscountAllowed(o.value, date); });
+  if (clearSelected && sel.value && !isDiscountAllowed(sel.value, date)) { sel.value = ''; onDiscountTypeChange(); }
+}
 function onDiscountTypeChange() {
   const val  = document.getElementById('rec-discount-type').value;
   const warn = document.getElementById('rec-discount-warn');
@@ -1699,6 +1715,7 @@ function openAddRecord(date) {
   document.getElementById('rec-num').value = '';
   document.getElementById('rec-price').value = '';
   document.getElementById('rec-discount-type').value = '';
+  applyDiscountLimits(false);
   document.getElementById('rec-discount-warn').style.display = 'none';
   document.getElementById('rec-paid-diff-group').style.display = 'none';
   document.getElementById('rec-paid-diff').checked = false;
@@ -1738,6 +1755,7 @@ function editRecord(id) {
   document.getElementById('rec-num').value   = r.seatNumber != null ? r.seatNumber : '';
   // 할인권
   document.getElementById('rec-discount-type').value = r.discountType || '';
+  applyDiscountLimits(false);
   onDiscountTypeChange();
   document.getElementById('rec-paid-diff').checked = !!r.paidDiff;
   document.getElementById('rec-price').value   = r.price != null ? r.price : '';
