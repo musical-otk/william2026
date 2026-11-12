@@ -1,4 +1,4 @@
-const CACHE_NAME = 'william2026-v5';
+const CACHE_NAME = 'william2026-v6';
 const BASE = '/william2026';
 
 const PRECACHE_URLS = [
